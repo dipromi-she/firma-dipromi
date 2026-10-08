@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
+
+  <title>Firma Digital</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f3f5f7;
+      color: #202124;
+    }
+
+    .contenedor {
+      width: 100%;
+      max-width: 620px;
+      margin: auto;
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 18px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.10);
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0 0 8px;
+      font-size: 27px;
+    }
+
+    .descripcion {
+      text-align: center;
+      color: #666;
+      margin-bottom: 25px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 15px;
+      font-size: 17px;
+      border: 1px solid #c5c7ca;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .titulo {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .firma {
+      width: 100%;
+      height: 240px;
+      border: 2px solid #222;
+      border-radius: 12px;
+      background: white;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    .botones {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button {
+      flex: 1;
+      border: none;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .limpiar {
+      background: #e5e7eb;
+    }
+
+    .guardar {
+      background: #2563eb;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: .5;
+    }
+
+    #mensaje {
+      text-align: center;
+      margin-top: 20px;
+      font-weight: bold;
+      min-height: 25px;
+    }
+
+    .ok {
+      color: #16803c;
+    }
+
+    .error {
+      color: #c62828;
+    }
+
+    .espera {
+      color: #555;
+    }
+
+    iframe {
+      display: none;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="contenedor">
+
+  <h1>Firma digital</h1>
+
+  <div class="descripcion">
+    Escribe tu nombre y realiza tu firma con el dedo.
+  </div>
+
+  <form
+    id="formulario"
+    method="POST"
+    target="respuesta"
+  >
+
+    <label for="nombre">
+      Nombre completo
+    </label>
+
+    <input
+      type="text"
+      id="nombre"
+      name="nombre"
+      placeholder="Nombre completo"
+      autocomplete="name"
+      required
+    >
+
+    <div class="titulo">
+      Firma
+    </div>
+
+    <div class="firma">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <input
+      type="hidden"
+      id="firma"
+      name="firma"
+    >
+
+    <div class="botones">
+
+      <button
+        type="button"
+        class="limpiar"
+        id="btnLimpiar"
+      >
+        LIMPIAR
+      </button>
+
+      <button
+        type="submit"
+        class="guardar"
+        id="btnGuardar"
+      >
+        GUARDAR FIRMA
+      </button>
+
+    </div>
+
+  </form>
+
+  <iframe
+    name="respuesta"
+    id="respuesta"
+  ></iframe>
+
+  <div id="mensaje"></div>
+
+</div>
+
+
+<script>
+
+  // ==================================================
+  // URL DE NUESTRA APP SCRIPT
+  // ==================================================
+
+  const URL_APPS_SCRIPT =
+    'https://script.google.com/macros/s/AKfycby0aRhB0Te8COJkfzI0cnl9U3r0ezokyR93iCZIDQGSs2I1PA0mhZOs-vPeTBRyslCT/exec';
+
+
+  document
+    .getElementById('formulario')
+    .action = URL_APPS_SCRIPT;
+
+
+  // ==================================================
+  // CANVAS
+  // ==================================================
+
+  const canvas =
+    document.getElementById('canvas');
+
+  const ctx =
+    canvas.getContext('2d');
+
+  let dibujando = false;
+  let tieneFirma = false;
+
+
+  function prepararCanvas() {
+
+    const rect =
+      canvas.getBoundingClientRect();
+
+    const dpr =
+      window.devicePixelRatio || 1;
+
+    canvas.width =
+      rect.width * dpr;
+
+    canvas.height =
+      rect.height * dpr;
+
+    ctx.setTransform(
+      dpr,
+      0,
+      0,
+      dpr,
+      0,
+      0
+    );
+
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111';
+
+  }
+
+
+  prepararCanvas();
+
+
+  function posicion(e) {
+
+    const rect =
+      canvas.getBoundingClientRect();
+
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+
+  }
+
+
+  canvas.addEventListener(
+    'pointerdown',
+    function(e) {
+
+      e.preventDefault();
+
+      dibujando = true;
+      tieneFirma = true;
+
+      canvas.setPointerCapture(
+        e.pointerId
+      );
+
+      const p =
+        posicion(e);
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        p.x,
+        p.y
+      );
+
+    }
+  );
+
+
+  canvas.addEventListener(
+    'pointermove',
+    function(e) {
+
+      if (!dibujando) return;
+
+      e.preventDefault();
+
+      const p =
+        posicion(e);
+
+      ctx.lineTo(
+        p.x,
+        p.y
+      );
+
+      ctx.stroke();
+
+    }
+  );
+
+
+  canvas.addEventListener(
+    'pointerup',
+    terminar
+  );
+
+  canvas.addEventListener(
+    'pointercancel',
+    terminar
+  );
+
+
+  function terminar() {
+
+    dibujando = false;
+
+    ctx.closePath();
+
+  }
+
+
+  // ==================================================
+  // LIMPIAR
+  // ==================================================
+
+  document
+    .getElementById('btnLimpiar')
+    .addEventListener(
+      'click',
+      function() {
+
+        ctx.clearRect(
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+        tieneFirma = false;
+
+      }
+    );
+
+
+  // ==================================================
+  // GUARDAR
+  // ==================================================
+
+  document
+    .getElementById('formulario')
+    .addEventListener(
+      'submit',
+      function(e) {
+
+        if (!tieneFirma) {
+
+          e.preventDefault();
+
+          mostrar(
+            'Primero realiza tu firma.',
+            'error'
+          );
+
+          return;
+
+        }
+
+
+        const nombre =
+          document
+            .getElementById('nombre')
+            .value
+            .trim();
+
+
+        if (!nombre) {
+
+          e.preventDefault();
+
+          mostrar(
+            'Escribe tu nombre completo.',
+            'error'
+          );
+
+          return;
+
+        }
+
+
+        const imagen =
+          canvas.toDataURL('image/png');
+
+
+        document
+          .getElementById('firma')
+          .value = imagen;
+
+
+        document
+          .getElementById('btnGuardar')
+          .disabled = true;
+
+
+        document
+          .getElementById('btnLimpiar')
+          .disabled = true;
+
+
+        mostrar(
+          'Guardando firma...',
+          'espera'
+        );
+
+      }
+    );
+
+
+  // ==================================================
+  // RESPUESTA DEL APPS SCRIPT
+  // ==================================================
+
+  window.addEventListener(
+    'message',
+    function(event) {
+
+      const datos = event.data;
+
+
+      if (!datos) return;
+
+
+      if (
+        datos.tipo ===
+        'FIRMA_GUARDADA'
+      ) {
+
+        mostrar(
+          '✓ Firma guardada correctamente.',
+          'ok'
+        );
+
+
+        document
+          .getElementById('btnGuardar')
+          .disabled = false;
+
+
+        document
+          .getElementById('btnLimpiar')
+          .disabled = false;
+
+      }
+
+
+      if (
+        datos.tipo ===
+        'FIRMA_ERROR'
+      ) {
+
+        mostrar(
+          'Error: ' +
+          datos.mensaje,
+          'error'
+        );
+
+
+        document
+          .getElementById('btnGuardar')
+          .disabled = false;
+
+
+        document
+          .getElementById('btnLimpiar')
+          .disabled = false;
+
+      }
+
+    }
+  );
+
+
+  function mostrar(texto, clase) {
+
+    const mensaje =
+      document.getElementById('mensaje');
+
+    mensaje.textContent = texto;
+
+    mensaje.className = clase;
+
+  }
+
+</script>
+
+</body>
+</html>
