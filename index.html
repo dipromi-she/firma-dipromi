@@ -304,6 +304,337 @@ canvas.addEventListener(
     const p =
       posicion(e);
 
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+>
+
+<title>Firma Digital DIPROMI</title>
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #f3f5f7;
+  color: #202124;
+}
+
+.contenedor {
+  width: 100%;
+  max-width: 600px;
+  margin: auto;
+  background: white;
+  padding: 25px;
+  border-radius: 18px;
+  box-shadow: 0 5px 20px rgba(0,0,0,.10);
+}
+
+h1 {
+  text-align: center;
+  margin-top: 0;
+}
+
+.descripcion {
+  text-align: center;
+  color: #666;
+  margin-bottom: 25px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+#nombre {
+  width: 100%;
+  padding: 15px;
+  font-size: 17px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.titulo {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.firma {
+  width: 100%;
+  height: 240px;
+  border: 2px solid #222;
+  border-radius: 12px;
+  background: white;
+  overflow: hidden;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.botones {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+button {
+  flex: 1;
+  border: 0;
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 17px;
+  font-weight: bold;
+}
+
+.limpiar {
+  background: #e5e7eb;
+}
+
+.guardar {
+  background: #2563eb;
+  color: white;
+}
+
+button:disabled {
+  opacity: .5;
+}
+
+#mensaje {
+  text-align: center;
+  margin-top: 20px;
+  min-height: 25px;
+  font-weight: bold;
+}
+
+.ok {
+  color: #16803c;
+}
+
+.error {
+  color: #c62828;
+}
+
+.espera {
+  color: #555;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="contenedor">
+
+<h1>Firma digital</h1>
+
+<div class="descripcion">
+  Escribe tu nombre y realiza tu firma con el dedo.
+</div>
+
+
+<form
+  id="formulario"
+  method="POST"
+  target="envioFirma"
+>
+
+
+<label for="nombre">
+  Nombre completo
+</label>
+
+
+<input
+  id="nombre"
+  name="nombre"
+  type="text"
+  placeholder="Nombre completo"
+  autocomplete="name"
+  required
+>
+
+
+<div class="titulo">
+  Firma
+</div>
+
+
+<div class="firma">
+
+<canvas id="canvas"></canvas>
+
+</div>
+
+
+<input
+  type="hidden"
+  id="firma"
+  name="firma"
+>
+
+
+<input
+  type="hidden"
+  id="token"
+  name="token"
+>
+
+
+<div class="botones">
+
+<button
+  type="button"
+  class="limpiar"
+  id="limpiar"
+>
+LIMPIAR
+</button>
+
+
+<button
+  type="submit"
+  class="guardar"
+  id="guardar"
+>
+GUARDAR FIRMA
+</button>
+
+</div>
+
+</form>
+
+
+<iframe
+  name="envioFirma"
+  style="
+    width:1px;
+    height:1px;
+    position:absolute;
+    left:-9999px;
+    border:0;
+  "
+></iframe>
+
+
+<div id="mensaje"></div>
+
+</div>
+
+
+<script>
+
+
+const URL_APPS_SCRIPT =
+'https://script.google.com/macros/s/AKfycby0aRhB0Te8COJkfzI0cnl9U3r0ezokyR93iCZIDQGSs2I1PA0mhZOs-vPeTBRyslCT/exec';
+
+
+document
+  .getElementById('formulario')
+  .action =
+  URL_APPS_SCRIPT;
+
+
+const canvas =
+  document.getElementById('canvas');
+
+const ctx =
+  canvas.getContext('2d');
+
+
+let dibujando = false;
+
+let tieneFirma = false;
+
+let enviando = false;
+
+let tokenActual = '';
+
+
+function prepararCanvas() {
+
+  const rect =
+    canvas.getBoundingClientRect();
+
+  const dpr =
+    window.devicePixelRatio || 1;
+
+  canvas.width =
+    rect.width * dpr;
+
+  canvas.height =
+    rect.height * dpr;
+
+  ctx.setTransform(
+    dpr,
+    0,
+    0,
+    dpr,
+    0,
+    0
+  );
+
+  ctx.lineWidth = 2.5;
+
+  ctx.lineCap = 'round';
+
+  ctx.lineJoin = 'round';
+
+  ctx.strokeStyle = '#111';
+}
+
+
+prepararCanvas();
+
+
+function obtenerPosicion(e) {
+
+  const rect =
+    canvas.getBoundingClientRect();
+
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+
+}
+
+
+canvas.addEventListener(
+  'pointerdown',
+  function(e) {
+
+    e.preventDefault();
+
+    dibujando = true;
+
+    tieneFirma = true;
+
+    canvas.setPointerCapture(
+      e.pointerId
+    );
+
+    const p =
+      obtenerPosicion(e);
+
     ctx.beginPath();
 
     ctx.moveTo(
@@ -324,7 +655,7 @@ canvas.addEventListener(
     e.preventDefault();
 
     const p =
-      posicion(e);
+      obtenerPosicion(e);
 
     ctx.lineTo(
       p.x,
@@ -341,6 +672,7 @@ canvas.addEventListener(
   'pointerup',
   terminar
 );
+
 
 canvas.addEventListener(
   'pointercancel',
@@ -360,188 +692,287 @@ function terminar() {
 /* LIMPIAR */
 
 document
-.getElementById('limpiar')
-.addEventListener(
-  'click',
-  function() {
+  .getElementById('limpiar')
+  .addEventListener(
+    'click',
+    function() {
 
-    ctx.clearRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
+      ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
 
-    tieneFirma = false;
+      tieneFirma = false;
 
-    mostrar('', '');
+      mostrar('', '');
+
+    }
+  );
+
+
+/* GENERAR TOKEN */
+
+function generarToken() {
+
+  if (
+    window.crypto &&
+    crypto.randomUUID
+  ) {
+
+    return crypto.randomUUID();
 
   }
-);
+
+  return (
+    Date.now().toString(36) +
+    Math.random()
+      .toString(36)
+      .substring(2, 12)
+  );
+
+}
 
 
-/* ENVIAR */
+/* ENVIAR FIRMA */
 
 document
-.getElementById('formulario')
-.addEventListener(
-  'submit',
-  function(e) {
-
-    if (!tieneFirma) {
+  .getElementById('formulario')
+  .addEventListener(
+    'submit',
+    function(e) {
 
       e.preventDefault();
 
-      mostrar(
-        'Primero realiza tu firma.',
-        'error'
-      );
 
-      return;
-
-    }
-
-    const nombre =
-      document
-      .getElementById('nombre')
-      .value
-      .trim();
-
-    if (!nombre) {
-
-      e.preventDefault();
-
-      mostrar(
-        'Escribe tu nombre completo.',
-        'error'
-      );
-
-      return;
-
-    }
-
-    const imagen =
-      canvas.toDataURL('image/png');
-
-    document
-    .getElementById('firma')
-    .value = imagen;
-
-    enviando = true;
-
-    document
-    .getElementById('guardar')
-    .disabled = true;
-
-    document
-    .getElementById('limpiar')
-    .disabled = true;
-
-    mostrar(
-      'Guardando firma...',
-      'espera'
-    );
-
-  }
-);
+      const nombre =
+        document
+          .getElementById('nombre')
+          .value
+          .trim();
 
 
-/*
- * Apps Script redirige el iframe
- * nuevamente a esta página:
- *
- * ?resultado=ok
- *
- * o
- *
- * ?resultado=error
- */
-
-const iframe =
-document.getElementById('respuesta');
-
-
-iframe.addEventListener(
-  'load',
-  function() {
-
-    if (!enviando) return;
-
-    try {
-
-      const url =
-        new URL(
-          iframe.contentWindow.location.href
-        );
-
-      if (
-        url.origin !==
-        window.location.origin
-      ) {
-        return;
-      }
-
-      const resultado =
-        url.searchParams.get(
-          'resultado'
-        );
-
-      if (
-        resultado === 'ok'
-      ) {
+      if (!nombre) {
 
         mostrar(
-          '✓ Firma guardada correctamente.',
-          'ok'
-        );
-
-        enviando = false;
-
-        document
-        .getElementById('guardar')
-        .disabled = false;
-
-        document
-        .getElementById('limpiar')
-        .disabled = false;
-
-      }
-
-      if (
-        resultado === 'error'
-      ) {
-
-        const mensaje =
-          url.searchParams.get(
-            'mensaje'
-          ) ||
-          'No se pudo guardar la firma.';
-
-        mostrar(
-          'Error: ' + mensaje,
+          'Escribe tu nombre completo.',
           'error'
         );
 
-        enviando = false;
-
-        document
-        .getElementById('guardar')
-        .disabled = false;
-
-        document
-        .getElementById('limpiar')
-        .disabled = false;
+        return;
 
       }
 
-    } catch (error) {
 
-      // La primera respuesta proviene de Apps Script
-      // y es de otro dominio. Se ignora.
+      if (!tieneFirma) {
+
+        mostrar(
+          'Primero realiza tu firma.',
+          'error'
+        );
+
+        return;
+
+      }
+
+
+      tokenActual =
+        generarToken();
+
+
+      const imagen =
+        canvas.toDataURL(
+          'image/png'
+        );
+
+
+      document
+        .getElementById('firma')
+        .value =
+        imagen;
+
+
+      document
+        .getElementById('token')
+        .value =
+        tokenActual;
+
+
+      enviando = true;
+
+
+      document
+        .getElementById('guardar')
+        .disabled = true;
+
+
+      document
+        .getElementById('limpiar')
+        .disabled = true;
+
+
+      mostrar(
+        'Guardando firma...',
+        'espera'
+      );
+
+
+      // Enviar el formulario al iframe
+      document
+        .getElementById('formulario')
+        .submit();
+
+
+      // Comenzar a consultar el resultado
+      setTimeout(
+        consultarResultado,
+        1200
+      );
+
     }
+  );
 
-  }
-);
+
+/* CONSULTAR RESULTADO */
+
+function consultarResultado() {
+
+  if (!enviando) return;
+
+  if (!tokenActual) return;
+
+
+  const callback =
+    'respuestaFirma_' +
+    Date.now();
+
+
+  window[callback] =
+    function(datos) {
+
+      try {
+
+        if (
+          datos.estado ===
+          'procesando'
+        ) {
+
+          setTimeout(
+            consultarResultado,
+            1000
+          );
+
+          return;
+
+        }
+
+
+        if (datos.ok) {
+
+          enviando = false;
+
+
+          mostrar(
+            '✓ Firma guardada correctamente.',
+            'ok'
+          );
+
+
+          document
+            .getElementById('guardar')
+            .disabled = false;
+
+
+          document
+            .getElementById('limpiar')
+            .disabled = false;
+
+
+          return;
+
+        }
+
+
+        if (
+          datos.estado ===
+          'error'
+        ) {
+
+          enviando = false;
+
+
+          mostrar(
+            'Error: ' +
+            datos.mensaje,
+            'error'
+          );
+
+
+          document
+            .getElementById('guardar')
+            .disabled = false;
+
+
+          document
+            .getElementById('limpiar')
+            .disabled = false;
+
+        }
+
+      }
+
+      finally {
+
+        delete window[callback];
+
+        script.remove();
+
+      }
+
+    };
+
+
+  const script =
+    document.createElement(
+      'script'
+    );
+
+
+  script.src =
+    URL_APPS_SCRIPT +
+    '?token=' +
+    encodeURIComponent(
+      tokenActual
+    ) +
+    '&callback=' +
+    encodeURIComponent(
+      callback
+    ) +
+    '&t=' +
+    Date.now();
+
+
+  script.onerror =
+    function() {
+
+      delete window[callback];
+
+      script.remove();
+
+      setTimeout(
+        consultarResultado,
+        1500
+      );
+
+    };
+
+
+  document
+    .body
+    .appendChild(script);
+
+}
 
 
 function mostrar(
